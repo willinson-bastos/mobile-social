@@ -1,21 +1,33 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
 
-export default function App() {
+import React, { useState } from 'react';
+import { View} from 'react-native';
+import { Input, Text } from 'react-native-elements';
+import { Button } from '@rneui/themed';
+import  Icon  from 'react-native-vector-icons/FontAwesome'; //ao importar da internet lembrar de tirar as chaves
+import styles from './style/MainStyle';
+import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
+import Login from './screens/Login';
+import Home from './screens/Home';
+
+const Stack = createStackNavigator();
+
+function MyStack() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <Text>Primeiro teste no expo, Olá mundo!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <Stack.Navigator>
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Home" component={Home} />
+    </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  return(
+    <NavigationContainer>
+      <MyStack/>
+    </NavigationContainer>
+  )
+
+}
+
+
