@@ -5,15 +5,21 @@ import { Text } from 'react-native-elements';
 import { Input, Button } from '@rneui/themed';
 import  Icon  from 'react-native-vector-icons/FontAwesome'; //ao importar da internet lembrar de tirar as chaves
 import styles from '../style/MainStyle';
+import usuarioService from '../services/UsuarioService';
+import Toast from 'react-native-toast-message';
+
 
 export default function Cadastro({navigation}) {
 
   const[nome, setNome] = useState(null);
   const[email, setEmail] = useState(null); //valor que for inserido no set será atribuído a variável
   const[senha, setSenha] = useState(null);
-  const[errorNome,setErrorNome] = useState(null);
+
+  const[errorNome,setErrorNome] = useState(null);//variáveis para mensagens de erro na tela
   const[errorEmail,setErrorEmail] = useState(null);
   const[errorSenha,setErrorSenha] = useState(null);
+
+  const[isLoading, setLoading] = useState(false);
 
   const validateEmail = (email) => {
     return String(email)
@@ -53,10 +59,37 @@ export default function Cadastro({navigation}) {
 
   const cadastrar = () =>{
     if(validar()){
-      console.log(nome);
-      console.log(email);
-      console.log(senha);
-      console.log("Cadastro salvo");
+      setLoading(true);
+      let data = {
+        nome: nome,
+        email: email,
+        senha: senha,
+      }
+
+      usuarioService.cadastrar(data)
+      .then((response)=>{
+        console.log(response.data);
+        setLoading(false);
+      })
+      .catch((error)=>{
+        console.log(error.response.status);
+        console.log(error);
+
+        if(error.response.status === 500){
+          Toast.show({
+            type: 'error', // tipo do toast (success, error, info)
+            text1: 'Erro', // título do toast
+            text2: 'O e-mail inserido já está em uso.', // mensagem do toast
+            visibilityTime: 5000, // tempo de exibição do toast em milissegundos
+            autoHide: true, // ocultar automaticamente após o tempo definido
+            topOffset: 30,
+            bottomOffset: 40,
+          });
+        }
+
+        setLoading(false);
+      });
+
     }
   }
 
@@ -99,6 +132,13 @@ export default function Cadastro({navigation}) {
         secureTextEntry={true}
         errorMessage={errorSenha}
       /> 
+
+      {isLoading&&
+        <Text>Carregando...</Text>
+      }
+
+      { !isLoading && 
+
       <Button 
       title="Cadastrar"
       radius={'sm'} 
@@ -108,7 +148,8 @@ export default function Cadastro({navigation}) {
       buttonStyle = {styles.button}
       icon={<Icon name="check" size={20} color="white"/>}
       />
-     
+      }
+
       <Button 
       title="Já possui uma conta? Entrar"
       radius={'sm'} 
@@ -117,11 +158,11 @@ export default function Cadastro({navigation}) {
       onPress={()=>login()} 
       buttonStyle = {styles.button}
       />
-        
+    
+    {/* Adicione o componente Toast no final da view */}
+    <Toast ref={(ref) => Toast.setRef(ref)} />
     </View>
   );
 }
 
 
-//<Button radius={'sm'} type="solid" size='lg' onPress={()=>entrar()} title="Entrar" /> teste este botão depois e tente inserir o icon abaixo:
-//<Icon name="check" size={20} color="white"/>
