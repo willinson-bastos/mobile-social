@@ -7,6 +7,18 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center' 
     },
+    button: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 350,
+      marginTop: 10,
+      marginBottom: 10
+    },
+    home:{
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
   });
 
   export default styles

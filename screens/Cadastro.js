@@ -6,26 +6,14 @@ import { Input, Button } from '@rneui/themed';
 import  Icon  from 'react-native-vector-icons/FontAwesome'; //ao importar da internet lembrar de tirar as chaves
 import styles from '../style/MainStyle';
 
-export default function Login({navigation}) {
+export default function Cadastro({navigation}) {
 
-  const[email, setEmail] = useState(null); //valor que for inserido no setEmail será atribuído a variável email
+  const[nome, setNome] = useState(null);
+  const[email, setEmail] = useState(null); //valor que for inserido no set será atribuído a variável
   const[senha, setSenha] = useState(null);
-
+  const[errorNome,setErrorNome] = useState(null);
   const[errorEmail,setErrorEmail] = useState(null);
   const[errorSenha,setErrorSenha] = useState(null);
-
-  const entrar = () =>{
-    
-    if(validar()){
-      console.log(email);
-      console.log(senha);
-
-      navigation.reset({
-        index: 0,
-        routes: [{name: "Home"}]
-      });
-    }
-  }
 
   const validateEmail = (email) => {
     return String(email)
@@ -36,10 +24,16 @@ export default function Login({navigation}) {
   };
 
   const validar = () =>{
-    let error = false;
+    let error = false
+
+    setErrorNome(null)
     setErrorEmail(null)
     setErrorSenha(null)
 
+    if(nome == null || nome == '' ){
+      setErrorNome("Preencha seu nome de usuário corretamente.")
+      error = true
+    }
     if(!validateEmail(email)){
       setErrorEmail("Preencha seu e-mail corretamente.")
       error = true
@@ -48,62 +42,86 @@ export default function Login({navigation}) {
       setErrorSenha("Preencha sua senha corretamente.")
       error = true  
     }
-
-    return !error;
+    if(senha)
+     if(senha.length < 8 && senha != null && senha !=''){
+      setErrorSenha("A senha deve ter pelo menos 8 caracteres.")
+      error = true
+    }
+    
+    return !error
   }
 
   const cadastrar = () =>{
-    navigation.reset({ //navegação definitiva sem botão 'voltar'
+    if(validar()){
+      console.log(nome);
+      console.log(email);
+      console.log(senha);
+      console.log("Cadastro salvo");
+    }
+  }
+
+  const login = () =>{
+    navigation.reset({
         index: 0,
-       routes: [{name: "Cadastro"}]
+        routes: [{name: "Login"}]
     });
-  //navigation.navigate("Cadastro");//navegação com botão voltar para testes
   }
 
   return (
     <View style={styles.container}> 
-      <Text h3>Bem vindo(a)!</Text>
+      <Text h3>Cadastro</Text>
+      <Input
+        placeholder="Nome"
+        leftIcon={{ type: 'font-awesome', name: 'user'}}
+        onChangeText={value =>{ 
+          setNome(value)
+          setErrorNome(null)
+        } }
+        errorMessage={errorNome}
+      />
       <Input
         placeholder="E-mail"
         leftIcon={{ type: 'font-awesome', name: 'envelope'}}
-        onChangeText={value => {
-          setEmail(value);
-          setErrorEmail(null);
-        }}
+        onChangeText={value =>{ 
+          setEmail(value)
+          setErrorEmail(null)
+        } }
         keyboardType="email-address"
         errorMessage={errorEmail}
       />
       <Input
         placeholder="Senha"
         leftIcon={{ type: 'font-awesome', name: 'lock'}}
-        onChangeText={value => {
-          setSenha(value);
-          setErrorSenha(null);
-        }}
+        onChangeText={value =>{ 
+          setSenha(value)
+          setErrorSenha(null)
+        } }
         secureTextEntry={true}
         errorMessage={errorSenha}
       /> 
       <Button 
+      title="Cadastrar"
       radius={'sm'} 
       type="solid" 
       size='lg' 
-      onPress={()=>entrar()} 
-      title="Entrar" 
-      icon={<Icon name="check" size={20} 
-      color="white"/>} 
+      onPress={()=>cadastrar()} 
       buttonStyle = {styles.button}
+      icon={<Icon name="check" size={20} color="white"/>}
       />
+     
       <Button 
-      title="Não possui uma conta? Cadastre-se"
+      title="Já possui uma conta? Entrar"
       radius={'sm'} 
       type="clear" 
       size='lg' 
-      onPress={()=>cadastrar()} 
-      buttonStyle = {styles.button}  
+      onPress={()=>login()} 
+      buttonStyle = {styles.button}
       />
-
+        
     </View>
   );
 }
 
 
+//<Button radius={'sm'} type="solid" size='lg' onPress={()=>entrar()} title="Entrar" /> teste este botão depois e tente inserir o icon abaixo:
+//<Icon name="check" size={20} color="white"/>
