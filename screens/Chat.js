@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, TextInput } from "react-native";
-import { Button, Text, Input } from 'react-native-elements';
-import styles from '../style/MainStyle';
+import { Button, Text } from 'react-native-elements';
 
 export default function Chat(){
 

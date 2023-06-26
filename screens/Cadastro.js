@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View} from 'react-native';
 import { Text } from 'react-native-elements';
 import { Input, Button } from '@rneui/themed';
 import  Icon  from 'react-native-vector-icons/FontAwesome'; //ao importar da internet lembrar de tirar as chaves
 import styles from '../style/MainStyle';
 import usuarioService from '../services/UsuarioService';
-import Toast from 'react-native-toast-message';
+import Toast from '../components/ToastComponent';
 
 
 export default function Cadastro({navigation}) {
@@ -15,11 +15,17 @@ export default function Cadastro({navigation}) {
   const[email, setEmail] = useState(null); //valor que for inserido no set será atribuído a variável
   const[senha, setSenha] = useState(null);
 
-  const[errorNome,setErrorNome] = useState(null);//variáveis para mensagens de erro na tela
+  const[errorNome,setErrorNome] = useState(null); //variáveis para mensagens de erro na tela
   const[errorEmail,setErrorEmail] = useState(null);
   const[errorSenha,setErrorSenha] = useState(null);
 
   const[isLoading, setLoading] = useState(false);
+
+  const toastRef = useRef(null);
+
+  const showToast = (message) => {
+    toastRef.current.show(message);
+  };
 
   const validateEmail = (email) => {
     return String(email)
@@ -69,22 +75,15 @@ export default function Cadastro({navigation}) {
       usuarioService.cadastrar(data)
       .then((response)=>{
         console.log(response.data);
+        showToast('Cadastro realizado com sucesso!');
         setLoading(false);
       })
       .catch((error)=>{
         console.log(error.response.status);
         console.log(error);
 
-        if(error.response.status === 500){
-          Toast.show({
-            type: 'error', // tipo do toast (success, error, info)
-            text1: 'Erro', // título do toast
-            text2: 'O e-mail inserido já está em uso.', // mensagem do toast
-            visibilityTime: 5000, // tempo de exibição do toast em milissegundos
-            autoHide: true, // ocultar automaticamente após o tempo definido
-            topOffset: 30,
-            bottomOffset: 40,
-          });
+        if(error.response && error.response.status === 500){
+          showToast('O e-mail inserido já está em uso.');
         }
 
         setLoading(false);
@@ -160,7 +159,8 @@ export default function Cadastro({navigation}) {
       />
     
     {/* Adicione o componente Toast no final da view */}
-    <Toast ref={(ref) => Toast.setRef(ref)} />
+    <Toast ref={toastRef} />
+
     </View>
   );
 }

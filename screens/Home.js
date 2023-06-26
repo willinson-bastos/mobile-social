@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Button, Input } from 'react-native-elements';
 import { FAB } from '@rneui/themed';
 import styles from '../style/MainStyle';
+import UserContext from '../contexts/UserContext';
 
 export default function Home({ navigation }) {
 
@@ -19,6 +20,8 @@ export default function Home({ navigation }) {
     // Após a conclusão da atualização, defina o estado de atualização como falso para ocultar o indicador de carregamento
     setRefreshing(false);
   };
+
+    const userData = useContext(UserContext).userData;
 
     const [posts, setPosts] = useState([
         // Array de exemplo com as postagens existentes
@@ -95,8 +98,8 @@ export default function Home({ navigation }) {
           </Text>
           <View style={homeStyle.homeBox}>
             <View style={homeStyle.userBox}>
-                <Text>usuario</Text>
-                <Text>usuario@email.com</Text>
+                <Text>{userData.nome}</Text>
+                <Text>{userData.email}</Text>
             </View>
             <View style={homeStyle.logoutContainer}>
               <Button

@@ -1,10 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useContext  } from 'react';
 import { View} from 'react-native';
 import { Text } from 'react-native-elements';
 import { Input, Button } from '@rneui/themed';
 import  Icon  from 'react-native-vector-icons/FontAwesome'; //ao importar da internet lembrar de tirar as chaves
 import styles from '../style/MainStyle';
+import usuarioService from '../services/UsuarioService';
+import Toast from '../components/ToastComponent';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import UserContext from '../contexts/UserContext';
 
 export default function Login({navigation}) {
 
@@ -14,16 +18,59 @@ export default function Login({navigation}) {
   const[errorEmail,setErrorEmail] = useState(null);
   const[errorSenha,setErrorSenha] = useState(null);
 
+  const[isLoading, setLoading] = useState(false);
+
+  const toastRef = useRef(null);
+
+  const { setUserData } = useContext(UserContext);
+
+  const showToast = (message) => {
+    toastRef.current.show(message);
+  };
+
   const entrar = () =>{
     
     if(validar()){
-      console.log(email);
-      console.log(senha);
 
-      navigation.reset({
-        index: 0,
-        routes: [{name: "Home"}]
+      setLoading(true);
+
+      let data = {
+        email: email,
+        password: senha,
+      }
+
+      usuarioService.login(data) 
+      .then( (response)=>{
+
+        console.log(response.data);
+
+        const userData = {
+          user: response.data.user,
+        };
+        AsyncStorage.setItem('userData', JSON.stringify(userData));
+
+        // Atualizar o estado userData no UserContext
+        setUserData(userData);
+
+        setLoading(false);
+
+        navigation.reset({
+          index: 0,
+          routes: [{name: "Home"}]
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+
+        if (error.response && error.response.status === 401) {
+          showToast('Verifique seu e-mail e senha.');
+        }
+      
+        setLoading(false);
       });
+      
+
+      
     }
   }
 
@@ -83,16 +130,24 @@ export default function Login({navigation}) {
         secureTextEntry={true}
         errorMessage={errorSenha}
       /> 
-      <Button 
-      radius={'sm'} 
-      type="solid" 
-      size='lg' 
-      onPress={()=>entrar()} 
-      title="Entrar" 
-      icon={<Icon name="check" size={20} 
-      color="white"/>} 
-      buttonStyle = {styles.button}
-      />
+
+      {isLoading&&
+        <Text>Carregando...</Text>
+      }
+
+      { !isLoading &&
+        <Button 
+        radius={'sm'} 
+        type="solid" 
+        size='lg' 
+        onPress={()=>entrar()} 
+        title="Entrar" 
+        icon={<Icon name="check" size={20} 
+        color="white"/>} 
+        buttonStyle = {styles.button}
+        />
+      }
+
       <Button 
       title="Não possui uma conta? Cadastre-se"
       radius={'sm'} 
@@ -102,6 +157,8 @@ export default function Login({navigation}) {
       buttonStyle = {styles.button}  
       />
 
+      {/* Adicione o componente Toast no final da view */}
+      <Toast ref={toastRef} />
     </View>
   );
 }
