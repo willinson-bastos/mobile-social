@@ -7,7 +7,7 @@ import  Icon  from 'react-native-vector-icons/FontAwesome'; //ao importar da int
 import styles from '../style/MainStyle';
 import usuarioService from '../services/UsuarioService';
 import Toast from '../components/ToastComponent';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';//comentar depois
 import UserContext from '../contexts/UserContext';
 
 export default function Login({navigation}) {
@@ -44,13 +44,15 @@ export default function Login({navigation}) {
 
         console.log(response.data);
 
-        const userData = {
-          user: response.data.user,
-        };
-        AsyncStorage.setItem('userData', JSON.stringify(userData));
+       // AsyncStorage.setItem("userId", JSON.stringify(response.data.user.id));
+        //AsyncStorage.setItem("userName", JSON.stringify(response.data.user.nome));
+        //AsyncStorage.setItem("userEmail", JSON.stringify(response.data.user.email));
 
-        // Atualizar o estado userData no UserContext
-        setUserData(userData);
+        setUserData({
+          id: response.data.user.id,
+          nome: response.data.user.nome,
+          email: response.data.user.email,
+        });
 
         setLoading(false);
 

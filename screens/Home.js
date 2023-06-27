@@ -1,78 +1,149 @@
-import React, { useState, useContext } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { Text, Button, Input } from 'react-native-elements';
 import { FAB } from '@rneui/themed';
 import styles from '../style/MainStyle';
 import UserContext from '../contexts/UserContext';
+import postService from '../services/PostService';
 
 export default function Home({ navigation }) {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  const userData = useContext(UserContext);
+  const { setUserData } = useContext(UserContext);
+
+  const [posts, setPosts] = useState([]);
+
+  const [newPostTitle, setNewPostTitle] = useState(null);
+  const [newPostText, setNewPostText] = useState(null);
+
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await postService.lerPosts();
+        const posts = response.data;
+        setPosts(posts.reverse());
+      } catch (error) {
+        console.error('Erro ao obter os posts:', error);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
   const handleRefresh = () => {
-    // Atualize seus dados aqui
-  
-    // Defina o estado de atualização como verdadeiro para mostrar o indicador de carregamento
+
     setRefreshing(true);
   
-    // Execute a lógica de atualização (por exemplo, buscar dados atualizados do servidor)
-  
-    // Após a conclusão da atualização, defina o estado de atualização como falso para ocultar o indicador de carregamento
-    setRefreshing(false);
+    postService
+      .lerPosts()
+      .then((response) => {
+        const posts = response.data;
+        setPosts(posts.reverse());
+        setRefreshing(false);
+      })
+      .catch((error) => {
+        console.error('Erro ao obter os posts:', error);
+        setRefreshing(false);
+      });
   };
 
-    const userData = useContext(UserContext).userData;
+  const validar = () =>{
+    let error = false;
 
-    const [posts, setPosts] = useState([
-        // Array de exemplo com as postagens existentes
-        {
-            titulo: 'Título da Postagem 1',
-            data: 'Data da Postagem 1',
-            nomeUsuario: 'Usuário 1',
-            emailUsuario: 'usuario1@example.com',
-            texto: 'Conteúdo da Postagem 1',
-          },
+    if( newPostTitle === null || newPostTitle === '' ){
+      error = true;
+    }
+    if( newPostText === null || newPostText === '' ){
+      error = true;
+    }
+
+    return !error;
+  }
+
+  const criarPost = () => {
+    if(!validar()){
+      Alert.alert(
+        'Erro',
+        'Há campos não preenchidos para sua publicação.',
+        [
           {
-            titulo: 'Título da Postagem 2',
-            data: 'Data da Postagem 2',
-            nomeUsuario: 'Usuário 2',
-            emailUsuario: 'usuario2@example.com',
-            texto: 'Conteúdo da Postagem 2',
-          },
-          {
-              titulo: 'Título da Postagem 2',
-              data: 'Data da Postagem 2',
-              nomeUsuario: 'Usuário 2',
-              emailUsuario: 'usuario2@example.com',
-              texto: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.',
-            },
+            text: 'Ok',
+            style:'cancel'
+          }
+        ]
+      );
+    }
+    if(validar()){
+
+      const date = new Date();
+      const ano = date.getFullYear();
+      const mes = ("0" + (date.getMonth() + 1)).slice(-2);
+      const dia = ("0" + date.getDate()).slice(-2);
+      const horas = ("0" + date.getHours()).slice(-2);
+      const minutos = ("0" + date.getMinutes()).slice(-2);
+
+      const dataFormatada = `${dia}/${mes}/${ano} - ${horas}:${minutos}`;
+
+      let data = {
+        nomeUsuario: userData.userData.nome,
+        emailUsuario: userData.userData.email,
+        titulo: newPostTitle,
+        data: dataFormatada,
+        texto: newPostText
+      }
+
+      postService.criarPost(data)
+      .then(()=>{
+        // Atualizar a lista de posts após a criação
+        setNewPostTitle(null);
+        setNewPostText(null);
+        handleRefresh();
+      })
+      .catch((error)=> {
+        console.error('Erro ao criar o post:', error);
+        Alert.alert(
+          'Erro',
+          'Erro ao criar o post.',
+          [
             {
-                titulo: 'Título da Postagem 2',
-                data: 'Data da Postagem 2',
-                nomeUsuario: 'Usuário 2',
-                emailUsuario: 'usuario2@example.com',
-                texto: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.',
-              },{
-                titulo: 'Título da Postagem 2',
-                data: 'Data da Postagem 2',
-                nomeUsuario: 'Usuário 2',
-                emailUsuario: 'usuario2@example.com',
-                texto: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.',
-              },{
-                titulo: 'Título da Postagem 2',
-                data: 'Data da Postagem 2',
-                nomeUsuario: 'Usuário 2',
-                emailUsuario: 'usuario2@example.com',
-                texto: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.',
-              },
-        // ...
-      ]);
+              text: 'Ok',
+              style:'cancel'
+            }
+          ]
+        );
+      });
+    }
+  };
 
-
-  const [newPost, setNewPost] = useState({
-    titulo: '',
-    conteudo: '',
-  });
+  const deletarPost = (id) => {
+    Alert.alert(
+      'Confirmação',
+      'Tem certeza que deseja excluir a publicação?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          onPress: () => {
+            // Chame a função de exclusão do postService aqui
+            postService.deletarPost(id)
+              .then(() => {
+                // Atualizar a lista de posts após a exclusão
+                handleRefresh();
+              })
+              .catch((error) => {
+                console.error('Erro ao excluir o post:', error);
+              });
+          },
+        },
+      ]
+    );
+  };
 
   const chat = () => {
     navigation.navigate('Chat');
@@ -80,7 +151,7 @@ export default function Home({ navigation }) {
 
   const logout = () =>{
 
-    //Implementar métodos de logout aqui
+    setUserData(null);
 
     navigation.reset({ 
         index: 0,
@@ -98,8 +169,16 @@ export default function Home({ navigation }) {
           </Text>
           <View style={homeStyle.homeBox}>
             <View style={homeStyle.userBox}>
-                <Text>{userData.nome}</Text>
-                <Text>{userData.email}</Text>
+              {userData.userData?
+              (
+                <>
+                <Text>ID: {userData.userData.id}</Text>
+                <Text>{userData.userData.nome}</Text>
+                <Text>{userData.userData.email}</Text>
+                </>
+              ):(
+                <Text>Dados não obtidos</Text>
+              )}
             </View>
             <View style={homeStyle.logoutContainer}>
               <Button
@@ -110,36 +189,43 @@ export default function Home({ navigation }) {
             </View>
           </View>
         </View>
-        
+       
         <ScrollView style={homeStyle.postListContainer}  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
           <View style={homeStyle.formContainer}>
               <Text h4>Criar Post</Text>
               <Input
               label="Título"
-              value={newPost.titulo}
-              onChangeText={(text) => setNewPost({ ...newPost, titulo: text })}
+              value={newPostTitle}
+              onChangeText={(text) => setNewPostTitle(text)}
               />
               <Input
               label="Conteúdo"
-              value={newPost.conteudo}
-              onChangeText={(text) => setNewPost({ ...newPost, conteudo: text })}
+              value={newPostText}
+              onChangeText={(text) => setNewPostText(text)}
               multiline
               />
-              <Button title="Criar"  />
+              <Button title="Criar"  onPress={()=>criarPost()}/>
           </View>
 
           {posts.map((post, index) => (
             <View key={index} style={homeStyle.postContainer}>
                   <View style={homeStyle.postHeaderActions}>
-                    <Button
-                      title="Excluir"
-                      buttonStyle={homeStyle.deleteButton}
-                    />
+                    
+                      { userData.userData && userData.userData.email === post.emailUsuario && (
+                        <Button
+                          title="Excluir"
+                          buttonStyle={homeStyle.deleteButton}
+                          onPress={()=>deletarPost(post.id)}
+                        />
+                        )
+                      }
+                     
                   </View>
               <View style={homeStyle.postHeader}>
                 <View style={homeStyle.postHeaderInfo}>
                   <Text style={homeStyle.postTitle}>Título: {post.titulo}</Text>
                   <Text>Data: {post.data}</Text>
+                  <Text>ID: {post.id}</Text>
                 </View>
                 <View style={homeStyle.postHeaderAuthor}>
                   <Text>Autor: {post.nomeUsuario}</Text>

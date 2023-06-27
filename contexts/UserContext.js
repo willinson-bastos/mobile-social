@@ -12,9 +12,17 @@ export const UserProvider = ({ children }) => {
 
   const loadUserData = async () => {
     try {
-      const storedData = await AsyncStorage.getItem('userData');
-      if (storedData) {
-        setUserData(JSON.parse(storedData));
+      const userId = await AsyncStorage.getItem("userId");
+      const userName = await AsyncStorage.getItem("userName");
+      const userEmail = await AsyncStorage.getItem("userEmail");
+
+      if (userId && userName && userEmail) {
+        setUserData({
+          id: parseInt(userId, 10),
+          nome: userName,
+          email: userEmail,
+        });
+        //console.log(userData);
       }
     } catch (error) {
       console.log('Erro ao carregar os dados do usuário:', error);
@@ -23,7 +31,9 @@ export const UserProvider = ({ children }) => {
 
   const clearUserData = async () => {
     try {
-      await AsyncStorage.removeItem('userData');
+      await AsyncStorage.removeItem("userId");
+      await AsyncStorage.removeItem("userName");
+      await AsyncStorage.removeItem("userEmail");
       setUserData(null);
     } catch (error) {
       console.log('Erro ao deletar os dados do usuário:', error);
@@ -31,7 +41,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ userData, setUserData }}>
+    <UserContext.Provider value={{ userData, setUserData, clearUserData }}>
       {children}
     </UserContext.Provider>
   );
