@@ -1,13 +1,29 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, TextInput } from "react-native";
 import { Button, Text } from 'react-native-elements';
+import UserContext from '../contexts/UserContext';
+import messagesService from '../services/MessagesService';
+import usuarioService from '../services/UsuarioService';
+import Toast from '../components/ToastComponent';
+import { SocketContext } from '../contexts/SocketContext';
 
 export default function Chat(){
 
-    const [showUsers, setShowUsers] = useState(true);
-    const [showMessages, setShowMessages] = useState(false);
+    const socket = useContext(SocketContext);
 
-    const [messageInputHeight, setMessageInputHeight] = useState(40);
+    const toastRef = useRef(null);
+  
+    const showToast = (message) => {
+      toastRef.current.show(message);
+    };
+
+    const userData = useContext(UserContext);
+
+    const[showUsers, setShowUsers] = useState(true);
+    const[showMessages, setShowMessages] = useState(false);
+
+    const[messageInputHeight, setMessageInputHeight] = useState(40);
+
 
     const handleMessageInputChange = (text) => {
         setMessageToSend(text);
@@ -21,221 +37,257 @@ export default function Chat(){
 
     const[messageToSend, setMessageToSend] = useState(null);
 
-    const [refreshing, setRefreshing] = useState(false);
+    const messageInputRef = useRef(null);
+
+    const[refreshing, setRefreshing] = useState(false);
+
+    const[usuariosComMensagem, setUsuariosComMensagem] = useState([]);
+    const[usuariosSemMensagem, setUsuariosSemMensagem] = useState([]);
+
+    const[selectedUserId, setSelectedUserId] = useState([]);
+
+    const[messagesFromServer, setMessagesFromServer] = useState([]);
+
+    const[messages, setMessages] = useState([]);
+
+    const handleReceiveMessage = async (message) => {
+      console.log(message);
+
+      if(message && message.idSender && message.idReceiver && message.text){
+          //fazer todas as verificações
+            if(showMessages === true && (message.idSender === selectedUserId && message.idReceiver === userData.userData.id)){
+              setMessages((messages)=>[...messages, message]);
+              //filtrarMensagens(selectedUserId);
+            }
+
+           /* if(message.idReceiver === userData.userData.id){
+              if(showUsers === true || (showUsers === false && selectedUserId !== message.idSender)){
+                console.log('entrou na condição de fora do chat');
+                //ler o usuário que enviou a msg
+                try{
+                  const response = usuarioService.lerUmUsuario(message.idSender);
+                  const user = response.data;
+                  console.log('Usuário que enviou a msg: '+ user);
+                  //exibir toast de mensagem recebida se estiver fora da conversa com este usuário
+                  if(user){
+                    showToast("Nova mensagem ");
+                  };
+                }catch(error){
+                  console.log('Erro lançado: ' + error);
+                }
+               
+                
+              }
+              
+            }*/
+        } else{
+          console.log("O objeto message ou alguma de suas propriedades não estão definidos corretamente.");
+        }
+    };
+
+    useEffect(() => {
+
+      const fetchData = async () => {
+        await lerMensagensDoServidor();
+        await lerUsuariosDoServidor(); 
+      };
+  
+      fetchData();
+
+        // Ouvir o evento 'message' do servidor e adicionar a mensagem recebida ao estado de mensagens
+        socket.on('message', (message) => {handleReceiveMessage(message)});
+      
+    }, []);
+
+    const lerMensagensDoServidor = async () => { 
+      try {
+        const response = await messagesService.lerMensagensDoServidor();
+        const msg = response.data;
+        setMessagesFromServer(msg);
+      } catch (error) {
+        console.error('Erro ao obter os as mensagens do servidor:', error);
+      }
+    };
+
+    const lerUsuariosDoServidor = async () => { 
+      try {
+        const response = await usuarioService.lerUsuarios();
+        const users = response.data;
+        const usersComMensagem = users.filter(
+          (user) => user.id !== userData.userData.id && hasMessages(user.id)
+        );
+        setUsuariosComMensagem(usersComMensagem);
+        const usersSemMensagem = users.filter(
+          (user) => user.id !== userData.userData.id && !hasMessages(user.id)
+        );
+        setUsuariosSemMensagem(usersSemMensagem);
+      } catch (error) {
+        console.error('Erro ao obter os as mensagens do servidor:', error);
+      }
+    };
+
+    const hasMessages = (id) => {
+    const temMensagens = messagesFromServer.some(message =>
+      (message.idSender === userData.userData.id && message.idReceiver === id) ||
+      (message.idSender === id && message.idReceiver === userData.userData.id)
+    );
+
+    //console.log(temMensagens);
+    return temMensagens;
+    }
 
     const handleRefresh = () => {
-        // Atualize seus dados aqui
       
-        // Defina o estado de atualização como verdadeiro para mostrar o indicador de carregamento
+        // Definir o estado de atualização como verdadeiro para mostrar o indicador de carregamento
         setRefreshing(true);
-      
-        // Execute a lógica de atualização (por exemplo, buscar dados atualizados do servidor)
-      
-        // Após a conclusão da atualização, defina o estado de atualização como falso para ocultar o indicador de carregamento
+        // Executar a lógica de atualização
+        const fetchData = async () => {
+          await lerMensagensDoServidor();
+          await lerUsuariosDoServidor();
+    
+        };
+        fetchData();
+        //Filtrar mensagens se estiver na aba de chat
+        if(showMessages === true){
+          filtrarMensagens(selectedUserId);
+        }
+        // Após a conclusão da atualização, definir o estado de atualização como falso para ocultar o indicador de carregamento
         setRefreshing(false);
       };
 
-      const handleSendMessage = () => {
+
+    const handleSendMessage = (message) => {
         // Lógica para enviar a mensagem
-        setMessageToSend('');
-        messageInputRef.current.clear(); // Limpa o campo de entrada de mensagem
-      };
+        if(showMessages === true && message !== null && message !== ''){
+          if(userData.userData && userData.userData.nome){
+          //Formatar horário de envio da mensagem
+          const date = new Date();
+          const horas = ("0" + date.getHours()).slice(-2);  // Obtém as horas com zero à esquerda
+          const minutos = ("0" + date.getMinutes()).slice(-2);  // Obtém os minutos com zero à esquerda
+
+          const dataFormatada = `(${horas}:${minutos})`;  // Cria a string no formato 
+
+          let data = {
+            idSender: userData.userData.id,
+            idReceiver: selectedUserId,
+            text: ("["+ userData.userData.nome +"]"+dataFormatada + ": " + message)
+          }
+
+          console.log(data);
+          setMessages((prevMessages)=>[...prevMessages, data]);
+          messagesService.enviarMensagem(data);
+
+          // Após o envio da mensagem
+          setMessageToSend('');
+          messageInputRef.current.clear(); // Limpa o campo de entrada de mensagem
+        }
+      } 
+    };
       
 
 
-    const handleUserPress = () => {
-        setShowUsers(false);
-        setShowMessages(true);
+    const handleUserPress = (id) => {
+
+      setSelectedUserId(id);
+      
+      setTimeout(()=>{
+        lerMensagensDoServidor();
+      }, 1000);
+
+      if(!id) return ;
+
+      filtrarMensagens(id);
+
+      setShowUsers(false);
+      setShowMessages(true);
     };
+
+    const filtrarMensagens = (id) => {
+      console.log('filtrarMensagens');
+      const filteredMessages = messagesFromServer.filter((message)=>{
+        return (message.idSender === userData.userData.id && message.idReceiver === id) ||
+         (message.idSender === id && message.idReceiver === userData.userData.id)
+      });
+      setMessages(filteredMessages);
+    };
+
     const handleBackPress = () => {
+        
         setShowUsers(true);
         setShowMessages(false);
+        handleRefresh();
     };
 
 
-    const [users, setUsers] = useState([
-        {
-            nome: 'Usuário 1',
-            email: 'usuario1@example.com',
-          },
-          {
-            nome: 'Usuário 2',
-            email: 'usuario2@example.com',
-          },
-          {
-            nome: 'Usuário 3',
-            email: 'usuario3@example.com',
-          },
-          {
-            nome: 'Usuário 1',
-            email: 'usuario1@example.com',
-          },
-          {
-            nome: 'Usuário 2',
-            email: 'usuario2@example.com',
-          },
-          {
-            nome: 'Usuário 3',
-            email: 'usuario3@example.com',
-          },
-         
-          {
-            nome: 'Usuário 1',
-            email: 'usuario1@example.com',
-          },
-          {
-            nome: 'Usuário 2',
-            email: 'usuario2@example.com',
-          },
-          {
-            nome: 'Usuário 3',
-            email: 'usuario3@example.com',
-          },
-         
-    ]);
-
-    const[newUsers, setNewUsers] = useState([
-        {
-            nome: 'Usuário new 1',
-            email: 'usuario1@example.com',
-          },
-          {
-            nome: 'Usuário new 2',
-            email: 'usuario2@example.com',
-          },
-          {
-            nome: 'Usuário new 3',
-            email: 'usuario3@example.com',
-          },
-          {
-            nome: 'Usuário new 1',
-            email: 'usuario1@example.com',
-          },
-          {
-            nome: 'Usuário new 2',
-            email: 'usuario2@example.com',
-          },
-          {
-            nome: 'Usuário new 3',
-            email: 'usuario3@example.com',
-          },{
-            nome: 'Usuário new 1',
-            email: 'usuario1@example.com',
-          },
-          {
-            nome: 'Usuário new 2',
-            email: 'usuario2@example.com',
-          },
-          {
-            nome: 'Usuário new 3',
-            email: 'usuario3@example.com',
-          },
-    ]);
-
-    const [messages, setMessages] = useState([
-        {text: 'olá'},
-        {text: 'bom dia'},
-        {text: 'olá, bom dia'},
-        {text: 'como vai?'},
-        {text: 'bem, e você?'},
-        {text: 'que bom, estou bem'},
-        {text: 'olá'},
-        {text: 'bom dia'},
-        {text: 'olá, bom dia'},
-        {text: 'como vai?'},
-        {text: 'bem, e você?'},
-        {text: 'que bom, estou bem'},
-        {text: 'olá'},
-        {text: 'bom dia'},
-        {text: 'olá, bom dia'},
-        {text: 'como vai?'},
-        {text: 'bem, e você?'},
-        {text: 'que bom, estou bem'},
-        {text: 'olá'},
-        {text: 'bom dia'},
-        {text: 'olá, bom dia'},
-        {text: 'como vai?'},
-        {text: 'bem, e você?'},
-        {text: 'que bom, estou bem'},
-        {text: 'olá'},
-        {text: 'bom dia'},
-        {text: 'olá, bom dia'},
-        {text: 'como vai?'},
-        {text: 'bem, e você?'},
-        {text: 'que bom, estou bem'},
-        {text: 'olá'},
-        {text: 'bom dia'},
-        {text: 'olá, bom dia'},
-        {text: 'como vai?'},
-        {text: 'bem, e você?'},
-        {text: 'que bom, estou bem'},
-    ]);
+    
 
     return(
         <View style={chatStyle.chatView}>
-            {showUsers &&(            
-            <ScrollView style={chatStyle.userList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-                    {users.map((user, index) => (
-                        <View key={index} style={chatStyle.userContainer}>
-
-                            
-                            <Text onPress={() => handleUserPress()}>
-                                <View>
-                                    <Text>{user.nome}</Text>
-                                    <Text>{user.email}</Text>
-                                </View>    
-                            </Text>
-                            
-                        </View>
-                    ))}
-                    <Text style={chatStyle.newChat}>Inicie uma nova conversa: </Text>
-                    {newUsers.map((user, index) => (
+                {showUsers &&(            
+                <ScrollView style={chatStyle.userList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+                        {usuariosComMensagem.map((user, index) => (
                             <View key={index} style={chatStyle.userContainer}>
-                                <Text onPress={() => handleUserPress()}>
+
+                                
+                                <Text onPress={() => handleUserPress(user.id)}>
                                     <View>
                                         <Text>{user.nome}</Text>
                                         <Text>{user.email}</Text>
                                     </View>    
                                 </Text>
+                                
                             </View>
                         ))}
-                </ScrollView>
-                
-                
-            )}
+                        <Text style={chatStyle.newChat}>Inicie uma nova conversa: </Text>
+                        {usuariosSemMensagem.map((user, index) => (
+                                <View key={index} style={chatStyle.userContainer}>
+                                    <Text onPress={() => handleUserPress(user.id)}>
+                                        <View>
+                                            <Text>{user.nome}</Text>
+                                            <Text>{user.email}</Text>
+                                        </View>    
+                                    </Text>
+                                </View>
+                            ))}
+                    </ScrollView>
+                    
+                    
+                )}
 
-            {showMessages &&(     
-            <View style={chatStyle.conversa}>
-                <View style={chatStyle.actions}>
-                    <Button onPress={()=>handleBackPress()} buttonStyle={{width: 100, maxHeight: 50, backgroundColor: '#B71D18'}}title="Voltar"/>
-                </View>
-                
-                <ScrollView style={chatStyle.messageList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-                    {messages.map((message, index) => (
-                    <View key={index} style={chatStyle.userContainer}>
-                        
-                        <View>
-                            <Text>{message.text}</Text>
+                {showMessages &&(     
+                <View style={chatStyle.conversa}>
+                    <View style={chatStyle.actions}>
+                        <Button onPress={()=>handleBackPress()} buttonStyle={{width: 100, maxHeight: 50, backgroundColor: '#B71D18'}}title="Voltar"/>
+                    </View>
+                    
+                    <ScrollView style={chatStyle.messageList} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+                        {messages.map((message, index) => (
+                        <View key={index} style={chatStyle.userContainer}>
+                            
+                            <View>
+                                <Text>{message.text}</Text>
+                            </View>
                         </View>
+                        ))}
+                    </ScrollView>
+                    
+                    <View style={chatStyle.messageForm}>
+                        <View style={chatStyle.messageInputForm}>
+                        <TextInput
+                            placeholder="Digite sua mensagem"
+                            value={messageToSend}
+                            onChangeText={handleMessageInputChange}
+                            multiline
+                            onContentSizeChange={handleMessageInputContentSizeChange}
+                            ref={messageInputRef}
+                        />
+                        </View>
+                        <Button title="Enviar" onPress={()=>handleSendMessage(messageToSend)}/>
                     </View>
-                    ))}
-                </ScrollView>
-                
-                <View style={chatStyle.messageForm}>
-                    <View style={chatStyle.messageInputForm}>
-                    <TextInput
-                        placeholder="Digite sua mensagem"
-                        value={messageToSend}
-                        onChangeText={handleMessageInputChange}
-                        multiline
-                        onContentSizeChange={handleMessageInputContentSizeChange}
-                    />
-                    </View>
-                    <Button title="Enviar" onPress={()=>handleSendMessage()}/>
                 </View>
-            </View>
-            )}
-
+                )}
+            {/* Adicione o componente Toast no final da view */}
+            <Toast ref={toastRef} />
         </View>
     );
 }

@@ -9,8 +9,11 @@ import usuarioService from '../services/UsuarioService';
 import Toast from '../components/ToastComponent';
 import AsyncStorage from '@react-native-async-storage/async-storage';//comentar depois
 import UserContext from '../contexts/UserContext';
+import { SocketContext } from '../contexts/SocketContext';
 
 export default function Login({navigation}) {
+
+  const socket = useContext(SocketContext);
 
   const[email, setEmail] = useState(null); //valor que for inserido no setEmail será atribuído a variável email
   const[senha, setSenha] = useState(null);
@@ -44,9 +47,9 @@ export default function Login({navigation}) {
 
         console.log(response.data);
 
-       // AsyncStorage.setItem("userId", JSON.stringify(response.data.user.id));
-        //AsyncStorage.setItem("userName", JSON.stringify(response.data.user.nome));
-        //AsyncStorage.setItem("userEmail", JSON.stringify(response.data.user.email));
+        AsyncStorage.setItem("userId", JSON.stringify(response.data.user.id));
+        AsyncStorage.setItem("userName", JSON.stringify(response.data.user.nome));
+        AsyncStorage.setItem("userEmail", JSON.stringify(response.data.user.email));
 
         setUserData({
           id: response.data.user.id,
@@ -54,6 +57,11 @@ export default function Login({navigation}) {
           email: response.data.user.email,
         });
 
+        setTimeout(() => {
+          socket.emit('loginChat', response.data.user.id);
+        }, 1000);
+          
+        
         setLoading(false);
 
         navigation.reset({

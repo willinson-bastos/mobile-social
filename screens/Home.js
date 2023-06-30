@@ -1,12 +1,23 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { Text, Button, Input } from 'react-native-elements';
 import { FAB } from '@rneui/themed';
 import styles from '../style/MainStyle';
 import UserContext from '../contexts/UserContext';
 import postService from '../services/PostService';
+import Toast from '../components/ToastComponent';
+import usuarioService from '../services/UsuarioService';
+import { SocketContext } from '../contexts/SocketContext';
 
 export default function Home({ navigation }) {
+
+  const socket = useContext(SocketContext);
+
+  const toastRef = useRef(null);
+
+  const showToast = (message) => {
+    toastRef.current.show(message);
+  };
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -19,7 +30,29 @@ export default function Home({ navigation }) {
   const [newPostText, setNewPostText] = useState(null);
 
 
+  /*const handleReceiveMessage = (message) => {
+    console.log(message);
+            if(message.idReceiver === userData.userData.id){
+                try{
+                  const response = usuarioService.lerUmUsuario(message.idSender);
+                  const user = response.data;
+                  console.log('Usuário que enviou a msg: '+ user);
+                  //exibir toast de mensagem recebida se estiver fora da conversa com este usuário
+                  if(user){
+                    showToast("Nova mensagem ");
+                  };
+                }catch(error){
+                  console.log('Erro lançado: ' + error);
+                }
+            }
+  };*/
+
   useEffect(() => {
+      // Ouvir o evento 'message' do servidor e exibir um toast com a mensagem recebida
+
+    //socket.on('message', (message) => {handleReceiveMessage(message)});
+    
+
     const fetchPosts = async () => {
       try {
         const response = await postService.lerPosts();
@@ -31,7 +64,10 @@ export default function Home({ navigation }) {
     };
 
     fetchPosts();
+
   }, []);
+
+  
 
   const handleRefresh = () => {
 
@@ -243,6 +279,8 @@ export default function Home({ navigation }) {
         <View style={homeStyle.fabContainer}>
           <FAB size="large" color="#2089dc" onPress={()=>chat()} />
         </View>
+  {/* Adicione o componente Toast no final da view */}
+  <Toast ref={toastRef} />
 </View>
 
   );

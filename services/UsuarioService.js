@@ -48,6 +48,22 @@ class UsuarioService{
             return Promise.reject(error);
         });
     }
+
+    async lerUmUsuario(id){
+        return axios({
+            url:`http://192.168.0.100:3000/usuario/${id}`, //alterar ip (ver vídeo)
+            method: "GET",
+            timeout: 5000,
+            headers:{
+                Accept: 'application/json'
+            }
+        }).then((response)=>{
+            return Promise.resolve(response);
+        }).catch((error)=>{
+            return Promise.reject(error);
+        });
+    }
+
 }
 
 const usuarioService = new UsuarioService();
